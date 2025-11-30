@@ -1,0 +1,19 @@
+# 开发环境配置
+.vscode/
+.claude/
+.idea/
+*.code-workspace
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+*.log
+*.tmp
+*.bak
+*~
+
+# 备用文件
+Plugin_CloudAttach.php
