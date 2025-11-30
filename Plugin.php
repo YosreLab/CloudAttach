@@ -1245,21 +1245,75 @@ class Plugin implements PluginInterface
         xhr.send(formData);
     };
 
-    // 批量下载
+    // 批量下载（使用服务器端代理）
     window.bulkDownload = function() {
         if (selectedAttachments.length === 0) {
             return;
         }
 
-        // 逐个打开下载链接
+        const totalFiles = selectedAttachments.length;
+        let downloadedCount = 0;
+
+        // 显示下载进度提示
+        const progressMsg = document.createElement(\'div\');
+        progressMsg.style.cssText = \'position: fixed; top: 20px; right: 20px; background: #fff; border: 1px solid #ddd; padding: 15px 20px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 100000; min-width: 200px;\';
+        progressMsg.innerHTML = \'<strong>批量下载进行中...</strong><br><span id="download-progress">0 / \' + totalFiles + \'</span>\';
+        document.body.appendChild(progressMsg);
+
+        // 更新进度显示
+        function updateProgress() {
+            const progressSpan = document.getElementById(\'download-progress\');
+            if (progressSpan) {
+                progressSpan.textContent = downloadedCount + \' / \' + totalFiles;
+            }
+
+            // 全部完成后移除提示
+            if (downloadedCount >= totalFiles) {
+                setTimeout(function() {
+                    if (progressMsg && progressMsg.parentNode) {
+                        document.body.removeChild(progressMsg);
+                    }
+                    alert(\'全部下载完成！共 \' + downloadedCount + \' 个文件\');
+                }, 1000);
+            }
+        }
+
+        // 逐个下载文件（使用独立下载脚本）
         selectedAttachments.forEach(function(item, index) {
             const fileUrl = item.cos_url || item.cloud_url || \'\';
-            if (fileUrl) {
-                // 使用延迟避免浏览器阻止多个弹窗
-                setTimeout(function() {
-                    window.open(fileUrl, \'_blank\');
-                }, index * 200); // 每个文件间隔200ms
+            if (!fileUrl) {
+                return;
             }
+
+            // 从 URL 中提取文件名
+            const fileName = fileUrl.split(\'/\').pop().split(\'?\')[0];
+
+            // 延迟下载，避免浏览器阻止
+            setTimeout(function() {
+                // 使用独立的下载脚本（避免 Typecho 加载污染）
+                const pluginUrl = handlerUrl.replace(\'/handler.php\', \'\');
+                const proxyUrl = pluginUrl + \'/download.php?url=\' + encodeURIComponent(fileUrl);
+
+                // 调试：输出下载 URL
+                console.log(\'下载 URL:\', proxyUrl);
+
+                // 创建隐藏的 <a> 标签触发下载
+                const a = document.createElement(\'a\');
+                a.style.display = \'none\';
+                a.href = proxyUrl;
+                a.download = fileName; // 明确指定文件名
+                document.body.appendChild(a);
+                a.click();
+
+                // 短暂延迟后移除 <a> 标签并更新进度
+                setTimeout(function() {
+                    if (a.parentNode) {
+                        document.body.removeChild(a);
+                    }
+                    downloadedCount++;
+                    updateProgress();
+                }, 500);
+            }, index * 800); // 每个文件间隔800ms
         });
     };
 

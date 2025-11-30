@@ -50,9 +50,6 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
     @require_once $dir . '/config.inc.php';
 }
 
-// 设置响应头
-header('Content-Type: application/json; charset=utf-8');
-
 // 检查请求类型
 $action = '';
 if (isset($_GET['action'])) {
@@ -61,11 +58,31 @@ if (isset($_GET['action'])) {
     $action = $_POST['action'];
 }
 
+// 对于 proxy_download 操作，清空所有缓冲区并直接处理
+if ($action === 'proxy_download') {
+    // 清空所有输出缓冲区
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    // 包含必要的文件
+    require_once __DIR__ . '/Action.php';
+    require_once __DIR__ . '/CosUploader.php';
+
+    // 直接调用代理下载
+    $handler = new Action();
+    $handler->proxyDownload();
+    exit; // 立即退出，不执行后续代码
+}
+
+// 其他操作设置 JSON 响应头
+header('Content-Type: application/json; charset=utf-8');
+
 try {
     // 包含必要的文件
     require_once __DIR__ . '/Action.php';
     require_once __DIR__ . '/CosUploader.php';
-    
+
     // 启用自动加载
     spl_autoload_register(function($className) {
         if (strpos($className, 'TypechoPlugin\\CloudAttach\\') === 0) {
@@ -76,7 +93,7 @@ try {
             }
         }
     });
-    
+
     switch ($action) {
         case 'upload':
             $handler = new Action();
