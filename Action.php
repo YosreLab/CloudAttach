@@ -216,6 +216,78 @@ class Action
     }
 
     /**
+     * 批量删除附件处理
+     */
+    public function bulkDelete()
+    {
+        try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->jsonResponse(array('success' => false, 'message' => '请求方式错误'));
+                return;
+            }
+
+            // 从 POST 参数中获取 cos_keys（JSON 格式的数组）
+            $cosKeysJson = isset($_POST['cos_keys']) ? trim($_POST['cos_keys']) : '';
+            if (empty($cosKeysJson)) {
+                $this->jsonResponse(array('success' => false, 'message' => '文件列表不能为空'));
+                return;
+            }
+
+            // 解析 JSON
+            $cosKeys = json_decode($cosKeysJson, true);
+            if (!is_array($cosKeys) || empty($cosKeys)) {
+                $this->jsonResponse(array('success' => false, 'message' => '文件列表格式错误'));
+                return;
+            }
+
+            $deletedCount = 0;
+            $failedCount = 0;
+            $errors = array();
+
+            // 逐个删除文件
+            foreach ($cosKeys as $cosKey) {
+                if (empty($cosKey)) {
+                    continue;
+                }
+
+                try {
+                    $deleteResult = $this->uploader->deleteFile($cosKey);
+
+                    if ($deleteResult['success']) {
+                        $deletedCount++;
+                    } else {
+                        $failedCount++;
+                        $errors[] = $cosKey . ': ' . $deleteResult['message'];
+                    }
+                } catch (\Exception $e) {
+                    $failedCount++;
+                    $errors[] = $cosKey . ': ' . $e->getMessage();
+                }
+            }
+
+            // 返回结果
+            if ($failedCount === 0) {
+                $this->jsonResponse(array(
+                    'success' => true,
+                    'message' => '全部删除成功',
+                    'deleted_count' => $deletedCount
+                ));
+            } else {
+                $this->jsonResponse(array(
+                    'success' => true,
+                    'message' => '部分删除成功',
+                    'deleted_count' => $deletedCount,
+                    'failed_count' => $failedCount,
+                    'errors' => $errors
+                ));
+            }
+
+        } catch (\Exception $e) {
+            $this->jsonResponse(array('success' => false, 'message' => '系统错误：' . $e->getMessage()));
+        }
+    }
+
+    /**
      * JSON响应
      */
     private function jsonResponse($data)

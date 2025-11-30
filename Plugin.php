@@ -16,11 +16,11 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
 /**
  * CloudAttach
  *
- * 一个功能强大的 Typecho 插件，支持对象存储(暂时仅支持COS)，提供现代化的附件管理界面和批量上传功能。
+ * 一个功能强大的 Typecho 插件，支持对象存储，提供现代化的附件管理界面和批量上传功能。
  *
  * @package CloudAttach
  * @author YosreLab
- * @version 1.0.1
+ * @version 1.0.3
  * @link https://github.com/YosreLab/CloudAttach
  */
 class Plugin implements PluginInterface
@@ -32,8 +32,8 @@ class Plugin implements PluginInterface
     {
         return array(
             'name' => 'CloudAttach',
-            'description' => '一个功能强大的 Typecho 插件，支持对象存储(暂时仅支持COS)，提供现代化的附件管理界面和批量上传功能。',
-            'version' => '1.0.1',
+            'description' => '一个功能强大的 Typecho 插件，支持对象存储，提供现代化的附件管理界面和批量上传功能。',
+            'version' => '1.0.3',
             'author' => 'YosreLab',
             'homepage' => 'https://github.com/YosreLab/CloudAttach'
         );
@@ -110,9 +110,8 @@ class Plugin implements PluginInterface
                 }
             }
 
-            // 注册钩子
-            \Typecho\Plugin::factory('admin/write-post.php')->bottom = array(__CLASS__, 'renderAttachmentPanel');
-            \Typecho\Plugin::factory('admin/write-page.php')->bottom = array(__CLASS__, 'renderAttachmentPanel');
+            // 注册钩子 - 在所有后台页面显示附件管理
+            \Typecho\Plugin::factory('admin/footer.php')->end = array(__CLASS__, 'renderAttachmentPanel');
             \Typecho\Plugin::factory('Widget_Archive')->handle = array(__CLASS__, 'handleContent');
 
         } catch (\Exception $e) {
@@ -250,6 +249,16 @@ class Plugin implements PluginInterface
      */
     public static function renderAttachmentPanel()
     {
+        // 安全检查：只在用户已登录时显示附件管理器
+        try {
+            $user = \Widget\User::alloc();
+            if (!$user->hasLogin()) {
+                return; // 未登录，直接返回
+            }
+        } catch (\Exception $e) {
+            return; // 出错时也不显示
+        }
+
         // 生成 handler.php 的 URL
         $pluginDir = str_replace('\\', '/', dirname(__FILE__));
         $rootDir = str_replace('\\', '/', __TYPECHO_ROOT_DIR__);
@@ -389,11 +398,10 @@ class Plugin implements PluginInterface
                     <div>
                         <span id="cos-selected-count" style="color: #666; font-size: 12px; font-weight: 500;">已选中 0 个文件</span>
                     </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <div id="cos-bulk-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <button id="cos-select-all" style="padding: 6px 12px; border: 1px solid #1e88e5; background: white; color: #1e88e5; border-radius: 4px; cursor: pointer; font-size: 12px;">全选</button>
                         <button id="cos-deselect-all" style="padding: 6px 12px; border: 1px solid #999; background: white; color: #666; border-radius: 4px; cursor: pointer; font-size: 12px;">取消</button>
-                        <button id="cos-bulk-insert" style="padding: 6px 12px; border: none; background: #4caf50; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">批量插入</button>
-                        <button id="cos-bulk-copy" style="padding: 6px 12px; border: none; background: #ff9800; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">批量复制</button>
+                        <!-- 批量插入、批量复制/下载按钮将通过 JavaScript 动态添加 -->
                     </div>
                 </div>
             </div>
@@ -427,6 +435,66 @@ class Plugin implements PluginInterface
 
     console.log("CloudAttach插件开始加载...");
     console.log("Handler URL:", handlerUrl);
+
+    // 检测当前页面类型
+    const isEditorPage = window.location.pathname.includes(\'write-post.php\') || window.location.pathname.includes(\'write-page.php\');
+    console.log("是否为编辑器页面:", isEditorPage);
+
+    // 动态添加批量操作按钮
+    const bulkButtonsContainer = document.getElementById("cos-bulk-buttons");
+    if (bulkButtonsContainer) {
+        // 如果是编辑器页面，添加批量插入按钮
+        if (isEditorPage) {
+            const bulkInsertBtn = document.createElement("button");
+            bulkInsertBtn.id = "cos-bulk-insert";
+            bulkInsertBtn.textContent = "批量插入";
+            bulkInsertBtn.style.cssText = "padding: 6px 12px; border: none; background: #4caf50; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;";
+
+            // 绑定点击事件
+            bulkInsertBtn.addEventListener("click", function() {
+                bulkInsert();
+            });
+
+            bulkButtonsContainer.appendChild(bulkInsertBtn);
+
+            // 编辑器页面：添加批量复制按钮
+            const bulkCopyBtn = document.createElement("button");
+            bulkCopyBtn.id = "cos-bulk-copy";
+            bulkCopyBtn.textContent = "批量复制";
+            bulkCopyBtn.style.cssText = "padding: 6px 12px; border: none; background: #ff9800; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;";
+
+            bulkCopyBtn.addEventListener("click", function() {
+                bulkCopy();
+            });
+
+            bulkButtonsContainer.appendChild(bulkCopyBtn);
+        } else {
+            // 其他页面：添加批量下载按钮
+            const bulkDownloadBtn = document.createElement("button");
+            bulkDownloadBtn.id = "cos-bulk-download";
+            bulkDownloadBtn.textContent = "批量下载";
+            bulkDownloadBtn.style.cssText = "padding: 6px 12px; border: none; background: #ff9800; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;";
+
+            bulkDownloadBtn.addEventListener("click", function() {
+                bulkDownload();
+            });
+
+            bulkButtonsContainer.appendChild(bulkDownloadBtn);
+        }
+
+        // 添加批量删除按钮（所有页面都有）
+        const bulkDeleteBtn = document.createElement("button");
+        bulkDeleteBtn.id = "cos-bulk-delete";
+        bulkDeleteBtn.textContent = "批量删除";
+        bulkDeleteBtn.style.cssText = "padding: 6px 12px; border: none; background: #f44336; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;";
+
+        // 绑定点击事件
+        bulkDeleteBtn.addEventListener("click", function() {
+            bulkDelete();
+        });
+
+        bulkButtonsContainer.appendChild(bulkDeleteBtn);
+    }
 
     let currentPage = 1;
     let currentCategory = "all";
@@ -867,14 +935,6 @@ class Plugin implements PluginInterface
         updateBulkActionsUI();
     });
 
-    document.getElementById("cos-bulk-insert").addEventListener("click", function() {
-        bulkInsert();
-    });
-
-    document.getElementById("cos-bulk-copy").addEventListener("click", function() {
-        bulkCopy();
-    });
-
     function renderAttachmentList(attachments) {
         const listContainer = document.getElementById("cos-attachment-list");
         if (!listContainer) return;
@@ -967,9 +1027,18 @@ class Plugin implements PluginInterface
 
             // 操作按钮
             html += \'<div style="display: flex; gap: 4px;">\';
-            html += \'<button type="button" onclick="insertAttachment(\\\'\' + fileUrl.replace(/\'/g, "\\\\\'") + \'\\\', \\\'\' + fileName.replace(/\'/g, "\\\\\'") + \'\\\', \\\'\' + (item.mime_type || \'\').replace(/\'/g, "\\\\\'") + \'\\\')" style="background: #4caf50; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="插入到编辑器">插入</button>\';
-            html += \'<button type="button" onclick="copyToClipboard(\\\'\' + fileUrl.replace(/\'/g, "\\\\\'") + \'\\\')" style="background: #2196f3; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="复制链接">复制</button>\';
-            html += \'<button type="button" onclick="deleteAttachment(\\\'\' + item.cos_key.replace(/\'/g, "\\\\\'") + \'\\\')" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="删除">删除</button>\';
+
+            // 根据页面类型显示不同的按钮
+            if (isEditorPage) {
+                // 编辑器页面：显示插入、复制、删除按钮
+                html += \'<button type="button" onclick="insertAttachment(\\\'\' + fileUrl.replace(/\'/g, "\\\\\'") + \'\\\', \\\'\' + fileName.replace(/\'/g, "\\\\\'") + \'\\\', \\\'\' + (item.mime_type || \'\').replace(/\'/g, "\\\\\'") + \'\\\')" style="background: #4caf50; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="插入到编辑器">插入</button>\';
+                html += \'<button type="button" onclick="copyToClipboard(\\\'\' + fileUrl.replace(/\'/g, "\\\\\'") + \'\\\')" style="background: #2196f3; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="复制链接">复制</button>\';
+                html += \'<button type="button" onclick="deleteAttachment(\\\'\' + item.cos_key.replace(/\'/g, "\\\\\'") + \'\\\')" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="删除">删除</button>\';
+            } else {
+                // 其他页面：只显示下载、删除按钮
+                html += \'<button type="button" onclick="window.open(\\\'\' + fileUrl.replace(/\'/g, "\\\\\'") + \'\\\', \\\'_blank\\\')" style="background: #4caf50; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="下载文件">下载</button>\';
+                html += \'<button type="button" onclick="deleteAttachment(\\\'\' + item.cos_key.replace(/\'/g, "\\\\\'") + \'\\\')" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;" title="删除">删除</button>\';
+            }
             html += \'</div>\';
 
             html += \'</div>\';
@@ -1109,6 +1178,89 @@ class Plugin implements PluginInterface
         } else {
             fallbackCopyToClipboard(text);
         }
+    };
+
+    // 批量删除
+    window.bulkDelete = function() {
+        if (selectedAttachments.length === 0) {
+            return;
+        }
+
+        // 确认弹窗
+        const count = selectedAttachments.length;
+        const confirmMsg = \'确定要删除选中的 \' + count + \' 个文件吗？\\n\\n此操作不可恢复！\';
+
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        // 获取所有选中文件的 cos_key
+        const cosKeys = selectedAttachments.map(function(item) {
+            return item.cos_key;
+        }).filter(function(key) {
+            return key;
+        });
+
+        if (cosKeys.length === 0) {
+            alert(\'没有可删除的文件\');
+            return;
+        }
+
+        // 显示删除进度
+        const progressText = \'正在删除 \' + cosKeys.length + \' 个文件...\';
+        console.log(progressText);
+
+        // 批量删除请求
+        const formData = new FormData();
+        formData.append(\'cos_keys\', JSON.stringify(cosKeys));
+
+        const xhr = new XMLHttpRequest();
+        xhr.addEventListener(\'load\', function() {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        // 清空选中列表
+                        selectedAttachments = [];
+                        // 刷新附件列表
+                        refreshCosAttachments();
+                        alert(\'成功删除 \' + response.deleted_count + \' 个文件\');
+                    } else {
+                        alert(\'删除失败：\' + response.message);
+                    }
+                } catch (e) {
+                    console.error(\'删除响应解析失败:\', e);
+                    alert(\'删除失败：服务器返回了无效的响应\');
+                }
+            } else {
+                alert(\'删除失败：HTTP \' + xhr.status);
+            }
+        });
+
+        xhr.addEventListener(\'error\', function() {
+            alert(\'删除失败：网络错误\');
+        });
+
+        xhr.open(\'POST\', handlerUrl + \'?action=bulk_delete\');
+        xhr.send(formData);
+    };
+
+    // 批量下载
+    window.bulkDownload = function() {
+        if (selectedAttachments.length === 0) {
+            return;
+        }
+
+        // 逐个打开下载链接
+        selectedAttachments.forEach(function(item, index) {
+            const fileUrl = item.cos_url || item.cloud_url || \'\';
+            if (fileUrl) {
+                // 使用延迟避免浏览器阻止多个弹窗
+                setTimeout(function() {
+                    window.open(fileUrl, \'_blank\');
+                }, index * 200); // 每个文件间隔200ms
+            }
+        });
     };
 
     window.copyToClipboard = function(text) {

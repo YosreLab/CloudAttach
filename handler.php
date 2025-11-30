@@ -93,6 +93,11 @@ try {
             $handler->list();
             break;
 
+        case 'bulk_delete':
+            $handler = new Action();
+            $handler->bulkDelete();
+            break;
+
         case 'test':
             // 测试COS配置
             if (ob_get_level() > 0) {

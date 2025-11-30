@@ -113,7 +113,21 @@ class CosUploader
             // 生成存储路径（格式：年/月）
             $uploadDir = date('Y/m');
             $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-            $uniqueName = uniqid() . '.' . $fileExt;
+
+            // 处理原始文件名：移除扩展名，清理特殊字符
+            $originalName = pathinfo($fileName, PATHINFO_FILENAME);
+            // 移除特殊字符，只保留字母、数字、中文、下划线和连字符
+            $cleanName = preg_replace('/[^\w\x{4e00}-\x{9fa5}-]/u', '_', $originalName);
+            // 限制长度为30个字符（避免文件名过长）
+            if (mb_strlen($cleanName, 'UTF-8') > 30) {
+                $cleanName = mb_substr($cleanName, 0, 30, 'UTF-8');
+            }
+
+            // 生成6位随机字符（比uniqid更短）
+            $randomStr = substr(md5(uniqid(mt_rand(), true)), 0, 6);
+
+            // 组合：原始文件名_随机字符.扩展名
+            $uniqueName = $cleanName . '_' . $randomStr . '.' . $fileExt;
             $cosKey = $this->storagePath . '/' . $uploadDir . '/' . $uniqueName;
             
             // 生成预签名URL
