@@ -894,45 +894,45 @@ class Plugin implements PluginInterface
 
             // 文档类型
             if (mimeType === \'application/pdf\' || ext === \'pdf\') {
-                return { icon: \'📕\', color: \'#e74c3c\' };
+                return { icon: \'PDF\', color: \'#e74c3c\', bgColor: \'#fee\' };
             }
             if ([\'doc\', \'docx\'].includes(ext) || mimeType.includes(\'word\')) {
-                return { icon: \'📘\', color: \'#2980b9\' };
+                return { icon: \'DOC\', color: \'#2980b9\', bgColor: \'#e3f2fd\' };
             }
             if ([\'xls\', \'xlsx\'].includes(ext) || mimeType.includes(\'excel\') || mimeType.includes(\'spreadsheet\')) {
-                return { icon: \'📗\', color: \'#27ae60\' };
+                return { icon: \'XLS\', color: \'#27ae60\', bgColor: \'#e8f5e9\' };
             }
             if ([\'ppt\', \'pptx\'].includes(ext) || mimeType.includes(\'presentation\')) {
-                return { icon: \'📙\', color: \'#e67e22\' };
+                return { icon: \'PPT\', color: \'#e67e22\', bgColor: \'#fff3e0\' };
             }
 
             // 压缩包
             if ([\'zip\', \'rar\', \'7z\', \'tar\', \'gz\'].includes(ext)) {
-                return { icon: \'📦\', color: \'#95a5a6\' };
+                return { icon: \'ZIP\', color: \'#95a5a6\', bgColor: \'#f5f5f5\' };
             }
 
             // 音频
             if (mimeType && mimeType.startsWith(\'audio/\')) {
-                return { icon: \'🎵\', color: \'#9b59b6\' };
+                return { icon: \'MP3\', color: \'#9b59b6\', bgColor: \'#f3e5f5\' };
             }
 
             // 视频
             if (mimeType && mimeType.startsWith(\'video/\')) {
-                return { icon: \'🎬\', color: \'#e91e63\' };
+                return { icon: \'MP4\', color: \'#e91e63\', bgColor: \'#fce4ec\' };
             }
 
             // 代码文件
             if ([\'js\', \'css\', \'html\', \'php\', \'py\', \'java\', \'cpp\', \'c\', \'json\', \'xml\'].includes(ext)) {
-                return { icon: \'💻\', color: \'#34495e\' };
+                return { icon: ext.toUpperCase(), color: \'#34495e\', bgColor: \'#eceff1\' };
             }
 
             // 文本文件
             if ([\'txt\', \'md\', \'log\'].includes(ext) || mimeType && mimeType.startsWith(\'text/\')) {
-                return { icon: \'📝\', color: \'#7f8c8d\' };
+                return { icon: \'TXT\', color: \'#7f8c8d\', bgColor: \'#f5f5f5\' };
             }
 
             // 默认
-            return { icon: \'📄\', color: \'#95a5a6\' };
+            return { icon: ext.toUpperCase().substring(0, 3) || \'FILE\', color: \'#95a5a6\', bgColor: \'#f5f5f5\' };
         }
 
         let html = \'\';
@@ -951,11 +951,11 @@ class Plugin implements PluginInterface
             html += \'<input type="checkbox" class="cos-attachment-checkbox" data-index="\' + index + \'" \' + (isSelected ? \'checked\' : \'\') + \' style="width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; margin: 0;" />\';
 
             // 文件预览或图标
-            html += \'<div style="width: 50px; height: 50px; background: \' + (isImage ? \'#f8f9fa\' : fileIconData.color + \'15\') + \'; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">\';
+            html += \'<div style="width: 50px; height: 50px; background: \' + (isImage ? \'#f8f9fa\' : fileIconData.bgColor) + \'; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">\';
             if (isImage) {
                 html += \'<img src="\' + fileUrl + \'" style="max-width: 100%; max-height: 100%; border-radius: 4px; object-fit: cover;">\';
             } else {
-                html += \'<span style="font-size: 24px;">\' + fileIconData.icon + \'</span>\';
+                html += \'<span style="font-size: 11px; font-weight: 600; color: \' + fileIconData.color + \'; letter-spacing: -0.5px;">\' + fileIconData.icon + \'</span>\';
             }
             html += \'</div>\';
 
