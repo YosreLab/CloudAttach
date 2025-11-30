@@ -1278,7 +1278,7 @@ class Plugin implements PluginInterface
             }
         }
 
-        // 逐个下载文件（使用独立下载脚本）
+        // 逐个下载文件（直接下载 CDN 文件）
         selectedAttachments.forEach(function(item, index) {
             const fileUrl = item.cos_url || item.cloud_url || \'\';
             if (!fileUrl) {
@@ -1290,18 +1290,12 @@ class Plugin implements PluginInterface
 
             // 延迟下载，避免浏览器阻止
             setTimeout(function() {
-                // 使用独立的下载脚本（避免 Typecho 加载污染）
-                const pluginUrl = handlerUrl.replace(\'/handler.php\', \'\');
-                const proxyUrl = pluginUrl + \'/download.php?url=\' + encodeURIComponent(fileUrl);
-
-                // 调试：输出下载 URL
-                console.log(\'下载 URL:\', proxyUrl);
-
-                // 创建隐藏的 <a> 标签触发下载
+                // 直接下载 CDN 文件（不通过服务器代理）
                 const a = document.createElement(\'a\');
                 a.style.display = \'none\';
-                a.href = proxyUrl;
-                a.download = fileName; // 明确指定文件名
+                a.href = fileUrl;
+                a.download = fileName;
+                a.target = \'_blank\'; // 在新标签页打开
                 document.body.appendChild(a);
                 a.click();
 
@@ -1313,7 +1307,7 @@ class Plugin implements PluginInterface
                     downloadedCount++;
                     updateProgress();
                 }, 500);
-            }, index * 800); // 每个文件间隔800ms
+            }, index * 1000); // 每个文件间隔1秒
         });
     };
 
