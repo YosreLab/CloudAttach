@@ -5,13 +5,16 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Create plugin package
         run: |
@@ -36,9 +39,12 @@ jobs:
           unzip -l CloudAttach-${GITHUB_REF#refs/tags/}.zip
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: CloudAttach-*.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
           body: |
             ## 📦 安装说明
 
@@ -47,12 +53,17 @@ jobs:
             3. 在 Typecho 后台启用插件
             4. 配置腾讯云 COS 参数
 
-            ## ✨ 本版本更新内容
+            ## ✨ 主要功能
 
-            详见下方的 Release Notes
+            - ✅ 腾讯云 COS 对象存储支持
+            - ✅ 批量上传功能（最多并发 3 个文件）
+            - ✅ 上传队列可视化管理
+            - ✅ 实时上传进度显示
+            - ✅ 多选功能和批量操作
+            - ✅ 文件分类筛选
+            - ✅ 分页浏览附件
+            - ✅ 图片预览功能
 
             ---
 
             **完整文档**: [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
