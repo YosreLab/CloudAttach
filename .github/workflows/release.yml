@@ -1,0 +1,58 @@
+name: Create Release Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create plugin package
+        run: |
+          # 创建临时目录
+          mkdir -p CloudAttach
+
+          # 复制插件需要的文件
+          cp Plugin.php CloudAttach/
+          cp handler.php CloudAttach/
+          cp Action.php CloudAttach/
+          cp CosUploader.php CloudAttach/
+          cp README.md CloudAttach/
+
+          # 复制 lib 目录
+          cp -r lib CloudAttach/
+
+          # 创建压缩包
+          zip -r CloudAttach-${GITHUB_REF#refs/tags/}.zip CloudAttach
+
+          # 显示压缩包内容
+          echo "压缩包内容："
+          unzip -l CloudAttach-${GITHUB_REF#refs/tags/}.zip
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: CloudAttach-*.zip
+          body: |
+            ## 📦 安装说明
+
+            1. 下载下方的 `CloudAttach-${{ github.ref_name }}.zip` 文件
+            2. 解压后将 `CloudAttach` 文件夹上传到 Typecho 的 `usr/plugins/` 目录
+            3. 在 Typecho 后台启用插件
+            4. 配置腾讯云 COS 参数
+
+            ## ✨ 本版本更新内容
+
+            详见下方的 Release Notes
+
+            ---
+
+            **完整文档**: [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

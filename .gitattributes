@@ -1,0 +1,7 @@
+# 设置导出时忽略的文件和目录
+.github export-ignore
+.vscode export-ignore
+.claude export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+Plugin_CloudAttach.php export-ignore
