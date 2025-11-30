@@ -38,6 +38,14 @@ jobs:
           echo "压缩包内容："
           unzip -l CloudAttach-${GITHUB_REF#refs/tags/}.zip
 
+      - name: Get tag message
+        id: tag_message
+        run: |
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' ${{ github.ref_name }})
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo "$TAG_MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -46,6 +54,10 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
+            ${{ steps.tag_message.outputs.message }}
+
+            ---
+
             ## 📦 安装说明
 
             1. 下载下方的 `CloudAttach-${{ github.ref_name }}.zip` 文件
