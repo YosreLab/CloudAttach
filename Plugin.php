@@ -14,15 +14,14 @@ if (!defined('__TYPECHO_ROOT_DIR__')) {
 }
 
 /**
- * CloudAttach - 云端附件管家
+ * CloudAttach
  *
- * 为 Typecho 提供强大的云端附件管理功能，支持腾讯云 COS 对象存储
- * 特性：批量上传、分类管理、分页浏览、可视化图标
+ * 一个功能强大的 Typecho 插件，支持对象存储(暂时仅支持COS)，提供现代化的附件管理界面和批量上传功能。
  *
  * @package CloudAttach
- * @author CloudAttach Team
- * @version 1.0.0
- * @link https://github.com/your-repo/cloudattach
+ * @author YosreLab
+ * @version 1.0.1
+ * @link https://github.com/YosreLab/CloudAttach
  */
 class Plugin implements PluginInterface
 {
@@ -33,10 +32,10 @@ class Plugin implements PluginInterface
     {
         return array(
             'name' => 'CloudAttach',
-            'description' => '云端附件管家，基于腾讯云COS的附件管理插件，支持批量上传、分类管理等功能',
-            'version' => '1.0.0',
-            'author' => 'CloudAttach Team',
-            'homepage' => 'https://github.com/your-repo/cloudattach'
+            'description' => '一个功能强大的 Typecho 插件，支持对象存储(暂时仅支持COS)，提供现代化的附件管理界面和批量上传功能。',
+            'version' => '1.0.1',
+            'author' => 'YosreLab',
+            'homepage' => 'https://github.com/YosreLab/CloudAttach'
         );
     }
 
