@@ -556,6 +556,34 @@ class Plugin implements PluginInterface
         }
     });
 
+    // 拖拽上传功能
+    uploadZone.addEventListener("dragover", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadZone.style.borderColor = "#1e88e5";
+        uploadZone.style.background = "#f8fbff";
+    });
+
+    uploadZone.addEventListener("dragleave", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadZone.style.borderColor = "#ddd";
+        uploadZone.style.background = "white";
+    });
+
+    uploadZone.addEventListener("drop", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadZone.style.borderColor = "#ddd";
+        uploadZone.style.background = "white";
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            console.log("拖拽文件:", files);
+            uploadFiles(Array.from(files));
+        }
+    });
+
     // 上传文件功能
     let uploadQueue = [];
     let uploadingCount = 0;
