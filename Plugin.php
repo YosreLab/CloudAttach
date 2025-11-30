@@ -258,11 +258,26 @@ class Plugin implements PluginInterface
         $handlerUrl = htmlspecialchars($handlerUrl, ENT_QUOTES, 'UTF-8');
 
         echo '<style>
+#cos-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+#cos-panel-overlay.active {
+    opacity: 1;
+}
 #cos-attachment-manager {
     position: fixed;
     right: 0;
     top: 0;
-    width: 380px;
+    width: 500px;
     height: 100vh;
     background: white;
     box-shadow: -2px 0 10px rgba(0,0,0,0.1);
@@ -295,7 +310,7 @@ class Plugin implements PluginInterface
 .cos-upload-zone {
     border: 2px dashed #ddd;
     border-radius: 8px;
-    padding: 30px;
+    padding: 20px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s;
@@ -325,18 +340,19 @@ class Plugin implements PluginInterface
 }
 </style>';
 
-        echo '<div id="cos-attachment-manager">
+        echo '<div id="cos-panel-overlay"></div>
+<div id="cos-attachment-manager">
     <div class="cos-panel-header">
         <h3 style="margin: 0; font-size: 16px;">☁️ CloudAttach</h3>
         <button type="button" class="cos-panel-close">×</button>
     </div>
-    
+
     <div class="cos-panel-content">
-        <div style="margin-bottom: 25px;">
+        <div style="margin-bottom: 20px;">
             <div class="cos-upload-zone">
-                <div style="font-size: 48px; margin-bottom: 15px;">⬆️</div>
-                <p style="margin: 0 0 8px 0; color: #333; font-weight: 500;">拖拽文件到此处或点击上传</p>
-                <small style="color: #666;">支持批量上传 | 格式：jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar</small>
+                <div style="font-size: 32px; margin-bottom: 10px;">⬆️</div>
+                <p style="margin: 0 0 5px 0; color: #333; font-weight: 500; font-size: 14px;">拖拽文件到此处或点击上传</p>
+                <small style="color: #666; font-size: 12px;">支持批量上传 | 格式：jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar</small>
                 <input type="file" id="cos-file-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar" style="display: none;">
             </div>
 
@@ -515,6 +531,7 @@ class Plugin implements PluginInterface
     document.getElementById("cos-panel-trigger").style.display = "block";
 
     const panel = document.getElementById("cos-attachment-manager");
+    const overlay = document.getElementById("cos-panel-overlay");
     const trigger = document.getElementById("cos-panel-trigger");
     const closeBtn = document.querySelector(".cos-panel-close");
     const uploadZone = document.querySelector(".cos-upload-zone");
@@ -527,14 +544,18 @@ class Plugin implements PluginInterface
         console.log("切换面板状态:", cosPanelOpen);
 
         if (cosPanelOpen) {
+            overlay.style.display = "block";
             panel.style.display = "flex";
             setTimeout(function() {
+                overlay.classList.add("active");
                 panel.style.transform = "translateX(0)";
             }, 10);
             refreshCosAttachments();
         } else {
+            overlay.classList.remove("active");
             panel.style.transform = "translateX(100%)";
             setTimeout(function() {
+                overlay.style.display = "none";
                 panel.style.display = "none";
             }, 300);
         }
@@ -542,6 +563,13 @@ class Plugin implements PluginInterface
 
     trigger.addEventListener("click", toggleCosPanel);
     closeBtn.addEventListener("click", toggleCosPanel);
+
+    // 点击遮罩层关闭面板
+    overlay.addEventListener("click", function() {
+        if (cosPanelOpen) {
+            toggleCosPanel();
+        }
+    });
 
     uploadZone.addEventListener("click", function() {
         fileInput.click();
@@ -860,6 +888,53 @@ class Plugin implements PluginInterface
         // 保存当前附件列表
         currentAttachments = attachments;
 
+        // 获取文件图标和颜色
+        function getFileIconAndColor(mimeType, fileName) {
+            const ext = fileName.split(\'.\').pop().toLowerCase();
+
+            // 文档类型
+            if (mimeType === \'application/pdf\' || ext === \'pdf\') {
+                return { icon: \'📕\', color: \'#e74c3c\' };
+            }
+            if ([\'doc\', \'docx\'].includes(ext) || mimeType.includes(\'word\')) {
+                return { icon: \'📘\', color: \'#2980b9\' };
+            }
+            if ([\'xls\', \'xlsx\'].includes(ext) || mimeType.includes(\'excel\') || mimeType.includes(\'spreadsheet\')) {
+                return { icon: \'📗\', color: \'#27ae60\' };
+            }
+            if ([\'ppt\', \'pptx\'].includes(ext) || mimeType.includes(\'presentation\')) {
+                return { icon: \'📙\', color: \'#e67e22\' };
+            }
+
+            // 压缩包
+            if ([\'zip\', \'rar\', \'7z\', \'tar\', \'gz\'].includes(ext)) {
+                return { icon: \'📦\', color: \'#95a5a6\' };
+            }
+
+            // 音频
+            if (mimeType && mimeType.startsWith(\'audio/\')) {
+                return { icon: \'🎵\', color: \'#9b59b6\' };
+            }
+
+            // 视频
+            if (mimeType && mimeType.startsWith(\'video/\')) {
+                return { icon: \'🎬\', color: \'#e91e63\' };
+            }
+
+            // 代码文件
+            if ([\'js\', \'css\', \'html\', \'php\', \'py\', \'java\', \'cpp\', \'c\', \'json\', \'xml\'].includes(ext)) {
+                return { icon: \'💻\', color: \'#34495e\' };
+            }
+
+            // 文本文件
+            if ([\'txt\', \'md\', \'log\'].includes(ext) || mimeType && mimeType.startsWith(\'text/\')) {
+                return { icon: \'📝\', color: \'#7f8c8d\' };
+            }
+
+            // 默认
+            return { icon: \'📄\', color: \'#95a5a6\' };
+        }
+
         let html = \'\';
         attachments.forEach(function(item, index) {
             const isImage = item.mime_type && item.mime_type.startsWith(\'image/\');
@@ -867,6 +942,7 @@ class Plugin implements PluginInterface
             const fileName = item.cos_key ? item.cos_key.split(\'/\').pop() : \'未知文件\';
             const fileUrl = item.cos_url || item.cloud_url || \'\';
             const isSelected = selectedAttachments.some(function(att) { return att.cos_key === item.cos_key; });
+            const fileIconData = getFileIconAndColor(item.mime_type || \'\', fileName);
 
             html += \'<div class="cos-attachment-item" data-cos-key="\' + item.cos_key + \'" style="border: 1px solid \' + (isSelected ? \'#1e88e5\' : \'#e0e0e0\') + \'; border-radius: 8px; padding: 12px; margin-bottom: 8px; transition: all 0.2s;">\';
             html += \'<div style="display: flex; align-items: center; gap: 12px;">\';
@@ -875,11 +951,11 @@ class Plugin implements PluginInterface
             html += \'<input type="checkbox" class="cos-attachment-checkbox" data-index="\' + index + \'" \' + (isSelected ? \'checked\' : \'\') + \' style="width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; margin: 0;" />\';
 
             // 文件预览或图标
-            html += \'<div style="width: 50px; height: 50px; background: #f8f9fa; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">\';
+            html += \'<div style="width: 50px; height: 50px; background: \' + (isImage ? \'#f8f9fa\' : fileIconData.color + \'15\') + \'; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">\';
             if (isImage) {
                 html += \'<img src="\' + fileUrl + \'" style="max-width: 100%; max-height: 100%; border-radius: 4px; object-fit: cover;">\';
             } else {
-                html += \'<span style="font-size: 20px;">📄</span>\';
+                html += \'<span style="font-size: 24px;">\' + fileIconData.icon + \'</span>\';
             }
             html += \'</div>\';
 
