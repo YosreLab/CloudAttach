@@ -43,37 +43,22 @@ if (empty($fileName)) {
 }
 $fileName = urldecode($fileName);
 
-// 使用 cURL 获取文件
+// 先获取文件大小
 $ch = curl_init($fileUrl);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_NOBODY, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-curl_setopt($ch, CURLOPT_TIMEOUT, 60); // 减少超时时间到60秒
-curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10); // 连接超时10秒
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-
-// 执行请求
-$fileContent = curl_exec($ch);
+curl_exec($ch);
+$fileSize = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$error = curl_error($ch);
-$errno = curl_errno($ch);
 curl_close($ch);
-
-// 检查错误
-if ($fileContent === false) {
-    http_response_code(500);
-    die('cURL Error (' . $errno . '): ' . $error);
-}
 
 if ($httpCode !== 200) {
     http_response_code(500);
-    die('HTTP Error: ' . $httpCode . ' - Failed to fetch file from CDN');
-}
-
-if (empty($fileContent)) {
-    http_response_code(500);
-    die('Error: File content is empty');
+    die('HTTP Error: ' . $httpCode . ' - Failed to access file from CDN');
 }
 
 // 再次清空缓冲区
@@ -85,12 +70,32 @@ while (ob_get_level() > 0) {
 header('Content-Type: application/octet-stream');
 header('Content-Transfer-Encoding: binary');
 header("Content-Disposition: attachment; filename*=UTF-8''" . rawurlencode($fileName));
-header('Content-Length: ' . strlen($fileContent));
+if ($fileSize > 0) {
+    header('Content-Length: ' . $fileSize);
+}
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
 
-// 输出文件内容
-echo $fileContent;
-flush();
+// 使用流式传输（不占用内存）
+$ch = curl_init($fileUrl);
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+
+// 直接输出到浏览器（流式传输）
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
+curl_setopt($ch, CURLOPT_BINARYTRANSFER, true);
+
+$result = curl_exec($ch);
+$error = curl_error($ch);
+$errno = curl_errno($ch);
+curl_close($ch);
+
+if ($result === false) {
+    error_log('cURL Error (' . $errno . '): ' . $error);
+}
+
 exit;
